@@ -1,0 +1,7 @@
+path: /media/jose/19E994FA289AF06B/Yolo/dataset
+train: images/train
+val: images/val
+
+names:
+  0: boi_garantido
+  1: boi_caprichoso
