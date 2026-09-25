@@ -52,9 +52,30 @@ Rodando o `best.pt` nas 5 imagens de validação com limiar de confiança 0.4, m
 
 ![Exemplos de detecção](results/deteccoes_exemplo.png)
 
+## Validação cruzada k-fold
+
+Um mAP de 0.995 calculado em cima de 5 imagens de validação é bom demais para confiar cegamente: trocar uma única imagem de lugar pode mudar esse número drasticamente. Para ter uma estimativa mais honesta do desempenho real do modelo, rodei validação cruzada estratificada em 5 folds (`scripts/kfold_train.py`), treinando o modelo 5 vezes, cada vez com uma fatia diferente das 26 imagens como validação e o resto como treino, sempre com a mesma receita que estabilizou o treino, backbone congelado, lr baixo, sem mosaico.
+
+| Fold | mAP50 | mAP50-95 | Precisão | Recall |
+|---|---|---|---|---|
+| 1 | 0.929 | 0.803 | 0.824 | 0.824 |
+| 2 | 0.995 | 0.759 | 0.831 | 0.968 |
+| 3 | 0.929 | 0.753 | 0.762 | 0.971 |
+| 4 | 0.556 | 0.417 | 0.384 | 0.417 |
+| 5 | 0.747 | 0.392 | 0.754 | 0.583 |
+| **Média ± desvio** | **0.831 ± 0.161** | **0.625 ± 0.181** | **0.711 ± 0.166** | **0.753 ± 0.219** |
+
+![Métricas por fold](results/kfold_metrics.png)
+
+O fold 2 é justamente a divisão que corresponde ao resultado de 0.995 mostrado na seção anterior, o melhor caso possível dessa amostra pequena, não o desempenho típico. O fold 4 mostra o outro extremo, mAP50 de apenas 0.556. A média real de 0.831, com desvio padrão de 0.161, é o número que descreve o modelo com mais honestidade: bom, mas instável de fold para fold, exatamente o que se espera de um dataset de 26 imagens. Mais dados deveriam estreitar essa faixa de variação.
+
+```bash
+python scripts/kfold_train.py   # roda os 5 folds e salva results/kfold_summary.json
+```
+
 ## O que fica de aprendizado
 
-Duas descobertas valeram mais que o número final do mAP. A primeira: anotação automática via segmentação de saliência genérica funciona bem para fotos de objeto único e centralizado, e falha de forma previsível quando há pessoas na cena competindo pela atenção do modelo de segmentação, uma limitação conhecida de pipelines de anotação fraca. A segunda: com um dataset muito pequeno, destravar a rede inteira para fine-tuning não é sempre a melhor forma de fazer transfer learning, às vezes o certo é justamente o oposto, congelar o máximo possível e deixar só uma parte pequena da rede aprender, exatamente o princípio clássico de transfer learning por extração de features, e a diferença entre um treino instável e um mAP de 0.99 foi essa mudança.
+Três descobertas valeram mais que o número final do mAP. A primeira: anotação automática via segmentação de saliência genérica funciona bem para fotos de objeto único e centralizado, e falha de forma previsível quando há pessoas na cena competindo pela atenção do modelo de segmentação, uma limitação conhecida de pipelines de anotação fraca. A segunda: com um dataset muito pequeno, destravar a rede inteira para fine-tuning não é sempre a melhor forma de fazer transfer learning, às vezes o certo é justamente o oposto, congelar o máximo possível e deixar só uma parte pequena da rede aprender, exatamente o princípio clássico de transfer learning por extração de features. A terceira: uma única divisão treino/validação, por mais bonito que o número saia, não prova nada sozinha quando o dataset é pequeno, foi só com k-fold que ficou claro que o mAP de 0.995 era o melhor caso, não o caso típico.
 
 Para melhorar o detector ainda mais, o próximo passo natural é seguir a mesma estratégia que já funcionou duas vezes: minerar mais fotos onde o boi seja o elemento dominante da cena, em especial de Caprichoso, e opcionalmente rotular manualmente as imagens que o rembg errou, em vez de descartá-las.
 
