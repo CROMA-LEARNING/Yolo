@@ -15,10 +15,13 @@ def main():
 
     model.train(
         data="dataset/data.yaml",
-        epochs=100,
-        patience=20,
+        epochs=150,
+        patience=30,
         imgsz=640,
-        batch=8,
+        batch=4,
+        lr0=0.001,
+        mosaic=0.0,
+        freeze=10,  # congela o backbone pre-treinado, so o head aprende (dataset muito pequeno)
         project="runs",
         name="boi_detector",
         exist_ok=True,
